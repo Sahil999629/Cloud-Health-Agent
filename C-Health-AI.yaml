@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation stack for AI-Powered Cloud Health Agent
+
+Resources:
+
+  CloudHealthAgentS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'cloud-health-agent-reports-${AWS::AccountId}-${AWS::Region}'
+  
+  CloudHealthAlertsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: C-Health-AI
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: cloud-health-agent-lambda-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/AmazonEC2FullAccess
+
+  CloudHealthAgentLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: cloud-health-agent-lambda
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: python3.12
+      Code:
+        ZipFile: |
+          def lambda_handler(event, context):
+              print("Hello from CloudHealthAgentLambda!")
+      Environment:
+        Variables:
+          BUCKET: !Ref CloudHealthAgentS3Bucket
+          TOPIC: !Ref CloudHealthAlertsTopic
+
+  LambdaSNSTrigger:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt CloudHealthAgentLambda.Arn
+      Action: lambda:InvokeFunction
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref CloudHealthAlertsTopic
+
+Outputs:
+  S3BucketName:
+    Description: S3 bucket for storing reports
+    Value: !Ref CloudHealthAgentS3Bucket
+  SNSTopic:
+    Description: SNS topic for health alerts
+    Value: !Ref CloudHealthAlertsTopic
+  LambdaFunctionName:
+    Description: Lambda function name
+    Value: !Ref CloudHealthAgentLambda
