@@ -1,0 +1,20 @@
+name: Deploy Lambda
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Show files in repo
+        run: ls -l
+
+      # Example: Add your deployment step here (e.g., aws-cli commands)
+      # - name: Deploy to AWS Lambda
+      #   run: echo "This is where you would deploy to AWS Lambda"
